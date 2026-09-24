@@ -40,10 +40,13 @@ const VALUE_X: f64 = ARROW_X + ARROW_WIDTH + 6.0;
 /// 「删」按钮的宽度。
 const REMOVE_WIDTH: f64 = 48.0;
 
-/// 一行映射的两个文本框（删按钮 wire 完交给视图树持有）。
+/// 一行映射的全部控件：两个文本框单独持有（草稿从它们读）；箭头与删按钮收进
+/// `extras` 按基类持有——重建时必须整行一起移除，漏掉的话旧控件叠在新控件上
+/// （按钮叠两层颜色变深，删掉的行还留着箭头与按钮）。
 struct Row {
     key: Retained<NSTextField>,
     value: Retained<NSTextField>,
+    extras: Vec<Retained<NSView>>,
 }
 
 pub(super) struct PunctuationEditor {
@@ -237,6 +240,9 @@ impl PunctuationEditor {
         for row in self.rows.borrow_mut().drain(..) {
             row.key.removeFromSuperview();
             row.value.removeFromSuperview();
+            for view in row.extras {
+                view.removeFromSuperview();
+            }
         }
         self.empty.setHidden(!rows.is_empty());
         let width = EDITOR_WIDTH - 2.0 * PAGE_PADDING;
@@ -292,6 +298,10 @@ impl PunctuationEditor {
             new_rows.push(Row {
                 key: key_field,
                 value: value_field,
+                extras: vec![
+                    Retained::into_super(Retained::into_super(arrow)),
+                    Retained::into_super(Retained::into_super(remove)),
+                ],
             });
         }
         *self.rows.borrow_mut() = new_rows;
