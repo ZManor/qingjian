@@ -74,7 +74,7 @@ fn erasing_several_commits_and_retyping_retracts_the_wrong_one() {
     assert_eq!(engine.learner().weight("先"), 2);
     // 中间隔着标点与原样上屏的英文也一样：开放，gist先 全删掉重打
     pick(&mut engine, "kaifa", "开放");
-    assert_eq!(engine.punctuate(','), Some("，"));
+    assert_eq!(engine.punctuate(','), Some("，".to_owned()));
     engine.set_input("gist");
     engine.take_raw();
     pick(&mut engine, "xian", "先");

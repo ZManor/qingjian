@@ -232,6 +232,10 @@ english_mode = true
 full_width_punctuation = true
 # 英文模式下的同一件事，中英各记一份，状态条切的是当前模式那份；只有 Windows 用
 english_full_width_punctuation = false
+# 标点映射覆盖：键是原输入的半角标点，值是上屏文本，合并盖在默认转换上（/ → 、、{ → 「、} → 」……）；
+# 空值表示该键不转换。字母数字不行——它们进组句，轮不到标点转换；组句中的翻页键仍翻页。
+# 偏好设置「通用 → 标点映射」编辑的就是它，下面是手写示例
+# punctuation_map = { "/" = "、", "[" = "", "@" = "◎" }
 # 辅码触发键：拼音打完之后敲它进辅码态，之后敲的字母按码表缩小候选范围；缺省是分号
 # 单个可见字符，字母、数字与翻页键不能当触发键；微软 / 搜狗双拼里分号先当 ing 的韵母键
 aux_code_key = ";"
@@ -521,6 +525,22 @@ impl Config {
         write_file(path, &document.to_string())
     }
 
+    /// 保存标点映射覆盖（`[general] punctuation_map`，写成行内表），其余内容、注释与顺序原样保留；
+    /// 偏好设置「标点映射」编辑器落盘走这里。非法条目照 [`qingjian_core::punctuation::validate_map`]
+    /// 拒收不写。
+    pub fn set_punctuation_map(
+        path: &Path,
+        map: &std::collections::BTreeMap<char, String>,
+    ) -> Result<(), String> {
+        qingjian_core::punctuation::validate_map(map)?;
+        let mut table = toml_edit::InlineTable::new();
+        for (key, value) in map {
+            table.insert(key.to_string(), toml_edit::Value::from(value.as_str()));
+        }
+        Self::set_value(path, "general", "punctuation_map", table)
+            .map_err(|source| source.to_string())
+    }
+
     /// 文件不存在时写出模板（目录一并建），返回是否写了。
     pub fn write_template_if_missing(path: &Path) -> Result<bool, ConfigError> {
         if path.exists() {
@@ -610,6 +630,31 @@ mod tests {
         assert_eq!(config.general.page_size, 5);
         assert_eq!(config.general.theme, ThemeMode::Dark);
         assert_eq!(config.shortcut.mode.question, 'i');
+        let _ = std::fs::remove_file(&path);
+    }
+
+    /// 标点映射写成行内表、读回来一致；非法条目（字母键）拒收不写。
+    #[test]
+    fn set_punctuation_map_round_trips_and_rejects_bad_entries() {
+        let path = std::env::temp_dir().join("qingjian-config-set-punct-map-test.toml");
+        let _ = std::fs::remove_file(&path);
+        let map = std::collections::BTreeMap::from([('/', "、".to_owned()), ('[', String::new())]);
+        Config::set_punctuation_map(&path, &map).unwrap();
+        let text = std::fs::read_to_string(&path).unwrap();
+        assert!(
+            text.contains(r#"punctuation_map = { "/" = "、", "[" = "" }"#),
+            "{text}"
+        );
+        assert_eq!(Config::load(&path).unwrap().general.punctuation_map(), map);
+        assert!(
+            Config::set_punctuation_map(
+                &path,
+                &std::collections::BTreeMap::from([('a', "×".to_owned())])
+            )
+            .is_err()
+        );
+        // 拒收的那次没碰文件
+        assert_eq!(Config::load(&path).unwrap().general.punctuation_map(), map);
         let _ = std::fs::remove_file(&path);
     }
 

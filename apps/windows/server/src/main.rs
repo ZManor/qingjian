@@ -178,6 +178,7 @@ fn main() {
     engine.set_traditional_mode(config.general.traditional);
     engine.set_learning(config.general.learning);
     engine.set_mode_keys(config.shortcut.mode);
+    engine.set_punctuation_map(&config.general.punctuation_map());
     engine.set_aux_code_key(config.general.aux_code_key(), config.general.page_keys());
     engine.set_aux_keep_empty(config.general.aux_code_keep_empty);
     engine.set_aux_enabled(config.aux_code.enabled);

@@ -14,6 +14,12 @@ const DICTIONARY_ENABLED_TAG_BASE: NSInteger = 200;
 /// 附加词库「移除」按钮的 tag 起点。
 const DICTIONARY_REMOVE_TAG_BASE: NSInteger = 300;
 
+/// 标点映射编辑里「删」按钮的 tag 起点，后面加行下标；与词库两段（200 / 300 各 100 宽）留出空隙。
+const PUNCTUATION_ROW_TAG_BASE: NSInteger = 500;
+
+/// 标点映射编辑里最多多少行（tag 段的宽度）。
+pub const MAX_PUNCTUATION_ROWS: usize = 100;
+
 /// 一页最多列多少本附加词库（tag 段的宽度）。
 pub const MAX_DICTIONARIES: usize = 100;
 
@@ -196,6 +202,24 @@ pub enum Setting {
 
     /// 「关于」页「GitHub」按钮。
     OpenRepository,
+
+    /// 「通用」页「标点映射」的「编辑…」按钮：打开子弹窗。
+    EditPunctuationMap,
+
+    /// 标点映射编辑里的原符号 / 转换文本框，只编辑草稿不立即保存。
+    PunctuationDraft,
+
+    /// 保存标点映射。
+    SavePunctuationMap,
+
+    /// 关闭标点映射编辑。
+    CancelPunctuationEdit,
+
+    /// 标点映射编辑里「添加一行」。
+    AddPunctuationRow,
+
+    /// 标点映射编辑里第 N 行的「删」按钮。
+    PunctuationRemoveRow(usize),
 }
 
 impl Setting {
@@ -245,6 +269,11 @@ impl Setting {
             Self::UpdateChannel => 54,
             Self::CheckUpdateNow => 55,
             Self::OpenDownload => 56,
+            Self::EditPunctuationMap => 57,
+            Self::PunctuationDraft => 58,
+            Self::SavePunctuationMap => 59,
+            Self::CancelPunctuationEdit => 60,
+            Self::AddPunctuationRow => 61,
             Self::FullWidthPunctuation => 33,
             Self::SelectPhrase => 34,
             Self::PhraseDraft => 35,
@@ -260,6 +289,7 @@ impl Setting {
             Self::Fuzzy(index) => FUZZY_TAG_BASE + index as NSInteger,
             Self::DictionaryEnabled(index) => DICTIONARY_ENABLED_TAG_BASE + index as NSInteger,
             Self::DictionaryRemove(index) => DICTIONARY_REMOVE_TAG_BASE + index as NSInteger,
+            Self::PunctuationRemoveRow(index) => PUNCTUATION_ROW_TAG_BASE + index as NSInteger,
         }
     }
 
@@ -321,6 +351,15 @@ impl Setting {
             39 => Self::EditPhrase,
             40 => Self::CancelPhraseEdit,
             46 => Self::SystemTextReplacements,
+            57 => Self::EditPunctuationMap,
+            58 => Self::PunctuationDraft,
+            59 => Self::SavePunctuationMap,
+            60 => Self::CancelPunctuationEdit,
+            61 => Self::AddPunctuationRow,
+            _ if tag >= PUNCTUATION_ROW_TAG_BASE => {
+                let index = usize::try_from(tag - PUNCTUATION_ROW_TAG_BASE).ok()?;
+                (index < MAX_PUNCTUATION_ROWS).then_some(Self::PunctuationRemoveRow(index))?
+            }
             _ if tag >= DICTIONARY_REMOVE_TAG_BASE => {
                 let index = usize::try_from(tag - DICTIONARY_REMOVE_TAG_BASE).ok()?;
                 (index < MAX_DICTIONARIES).then_some(Self::DictionaryRemove(index))?
@@ -389,6 +428,13 @@ mod tests {
             Setting::TestCloud,
             Setting::OpenWebsite,
             Setting::OpenRepository,
+            Setting::EditPunctuationMap,
+            Setting::PunctuationDraft,
+            Setting::SavePunctuationMap,
+            Setting::CancelPunctuationEdit,
+            Setting::AddPunctuationRow,
+            Setting::PunctuationRemoveRow(0),
+            Setting::PunctuationRemoveRow(MAX_PUNCTUATION_ROWS - 1),
             Setting::DictionaryEnabled(0),
             Setting::DictionaryEnabled(MAX_DICTIONARIES - 1),
             Setting::DictionaryRemove(3),
@@ -405,6 +451,10 @@ mod tests {
         );
         assert_eq!(
             Setting::from_tag(DICTIONARY_REMOVE_TAG_BASE + MAX_DICTIONARIES as NSInteger),
+            None
+        );
+        assert_eq!(
+            Setting::from_tag(PUNCTUATION_ROW_TAG_BASE + MAX_PUNCTUATION_ROWS as NSInteger),
             None
         );
     }

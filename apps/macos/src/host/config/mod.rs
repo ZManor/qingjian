@@ -18,6 +18,8 @@ impl Host {
         self.engine.set_traditional_mode(config.general.traditional);
         self.engine
             .set_full_width_punctuation(config.general.full_width_punctuation);
+        self.engine
+            .set_punctuation_map(&config.general.punctuation_map());
         self.apply_custom_phrases(&config);
         self.engine.set_mode_keys(config.shortcut.mode);
         self.engine.set_chinese_first(config.general.chinese_first);

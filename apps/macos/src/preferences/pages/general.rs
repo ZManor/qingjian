@@ -7,11 +7,15 @@ use qingjian_core::Language;
 use qingjian_platform::{Config, MAX_PAGE_SIZE, Scheme};
 
 use crate::preferences::controls::{
-    checkbox, language_label, note, row_checkbox, row_popup, select, set_checked,
+    button, caption, checkbox, language_label, note, row_checkbox, row_popup, select, set_checked,
 };
-use crate::preferences::layout::Layout;
+use crate::preferences::layout::{CONTROL_X, LABEL_WIDTH, Layout, PAGE_PADDING, ROW_HEIGHT};
 use crate::preferences::setting::Setting;
 use crate::preferences::target::PreferencesTarget;
+
+use super::punctuation::PunctuationEditor;
+
+use std::collections::BTreeMap;
 
 pub struct GeneralPage {
     /// 学习语言。
@@ -48,6 +52,9 @@ pub struct GeneralPage {
 
     /// 默认中文标点模式。
     punctuation: Retained<NSPopUpButton>,
+
+    /// 标点映射子弹窗。
+    punctuation_editor: PunctuationEditor,
 }
 
 impl GeneralPage {
@@ -55,7 +62,7 @@ impl GeneralPage {
     pub fn build(
         layout: &mut Layout,
         mtm: MainThreadMarker,
-        target: &PreferencesTarget,
+        target: &Retained<PreferencesTarget>,
         languages: &[Language],
     ) -> Self {
         // 最后一项是关
@@ -132,6 +139,21 @@ impl GeneralPage {
             mtm,
             "仅影响标点，字母和数字保持半角；自定义短语原样输出。设置会保存。 ",
         );
+        let punctuation_map_label = caption(mtm, "标点映射");
+        layout.place(
+            &punctuation_map_label,
+            PAGE_PADDING,
+            LABEL_WIDTH,
+            ROW_HEIGHT,
+        );
+        let edit_punctuation_map = button(mtm, "编辑…", Setting::EditPunctuationMap, target);
+        layout.place(&edit_punctuation_map, CONTROL_X, 90.0, ROW_HEIGHT);
+        layout.next_row(ROW_HEIGHT);
+        note(
+            layout,
+            mtm,
+            "把敲下的英文标点转成指定文本，优先于内置转换；/ → 、、{ → 「、} → 」这类默认映射也在这里改。",
+        );
         let traditional = checkbox(mtm, "繁体输出", Setting::Traditional, target);
         row_checkbox(layout, &traditional);
         let english = checkbox(
@@ -182,6 +204,7 @@ impl GeneralPage {
             mtm,
             "不勾（缺省）是临时打英文：拼音先上屏，这个大写字母原样交给应用。勾上后它进拼音缓冲区、按小写参与匹配，Cpan 与 cpan 一样能出「C盘」；回车原样上屏时保留大写。",
         );
+        let punctuation_editor = PunctuationEditor::new(mtm, target);
         Self {
             learning_language,
             page_size,
@@ -195,6 +218,7 @@ impl GeneralPage {
             shift_letter,
             languages: languages.to_vec(),
             punctuation,
+            punctuation_editor,
         }
     }
 
@@ -238,5 +262,33 @@ impl GeneralPage {
             .setEnabled(general.english_candidates);
         set_checked(&self.chinese_first, general.chinese_first);
         set_checked(&self.shift_letter, general.shift_letter.compose());
+    }
+
+    /// 打开标点映射子弹窗，从配置里载入当前映射。
+    pub fn edit_punctuation_map(&self, config: &Config) {
+        let map = config.general.punctuation_map();
+        if let Some(parent) = self.punctuation.window() {
+            self.punctuation_editor.open(&parent, &map);
+        }
+    }
+
+    pub fn close_punctuation_editor(&self) {
+        self.punctuation_editor.close();
+    }
+
+    pub fn set_punctuation_error(&self, error: &str) {
+        self.punctuation_editor.set_error(error);
+    }
+
+    pub fn add_punctuation_row(&self) {
+        self.punctuation_editor.add_row();
+    }
+
+    pub fn remove_punctuation_row(&self, index: usize) {
+        self.punctuation_editor.remove_row(index);
+    }
+
+    pub fn punctuation_draft(&self) -> Result<BTreeMap<char, String>, String> {
+        self.punctuation_editor.draft()
     }
 }

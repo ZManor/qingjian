@@ -3,11 +3,18 @@
 use super::aux_code::is_valid_aux_code_key;
 use super::*;
 use crate::engine::decoded::EngineDecoded;
+use std::collections::BTreeMap;
 
 impl Engine {
     /// 设置中文模式的标点转换。
     pub fn set_full_width_punctuation(&mut self, enabled: bool) {
         self.full_width_punctuation = enabled;
+    }
+
+    /// 用户配置的标点映射覆盖（配置项 `[general] punctuation_map`）：合并盖在默认映射上，
+    /// 空值条目表示该键不转换。壳在启动与配置热加载时调。
+    pub fn set_punctuation_map(&mut self, map: &BTreeMap<char, String>) {
+        self.punctuation.set_custom_map(map);
     }
 
     /// 原子更新自定义短语，非法规则保持旧值。

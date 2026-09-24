@@ -1,4 +1,7 @@
+use std::collections::BTreeMap;
+
 use qingjian_core::ShuangpinScheme;
+use qingjian_core::punctuation::{MAX_MAP_TEXT_CHARS, is_valid_map_key};
 use serde::{Deserialize, Serialize};
 
 use super::scheme::{Scheme, scheme_label};
@@ -72,6 +75,11 @@ pub struct GeneralConfig {
     /// 英文模式下的同一件事，中英各记一份；缺省半角。只有 Windows 用（macOS 英文模式一律半角）。
     pub english_full_width_punctuation: bool,
 
+    /// 标点映射覆盖（`[general] punctuation_map`，行内表）：键 = 原输入的半角标点、值 = 上屏文本，
+    /// 合并盖在默认转换上（`/` → `、`、`{` → `「` 等），空值表示该键不转换；缺省空表 = 全用默认。
+    /// 校验与清洗见 [`Self::punctuation_map`]。
+    pub punctuation_map: BTreeMap<String, String>,
+
     /// 辅码触发键：拼音打完之后敲它进辅码态，缺省 `;`。校验 = 单字符、ASCII 可打印、
     /// 非字母数字、非翻页键（见 [`qingjian_core::is_valid_aux_code_key`]）。
     pub aux_code_key: String,
@@ -135,6 +143,7 @@ impl Default for GeneralConfig {
             english_mode: true,
             full_width_punctuation: true,
             english_full_width_punctuation: false,
+            punctuation_map: BTreeMap::new(),
             aux_code_key: qingjian_core::DEFAULT_AUX_CODE_KEY.to_string(),
             aux_code_show: false,
             aux_code_keep_empty: true,
@@ -263,6 +272,32 @@ impl GeneralConfig {
             _ => DEFAULT_PAGE_KEYS,
         }
     }
+
+    /// 清洗成单字符键的标点映射：键须是单个 ASCII 标点、值不超 [`MAX_MAP_TEXT_CHARS`] 个字符
+    /// （见 [`qingjian_core::punctuation::validate_map`]），不合法的条目丢掉并警告——
+    /// 手改文件写坏了不至于整个配置读不进来。空值照收：它表示「该键不转换」。
+    pub fn punctuation_map(&self) -> BTreeMap<char, String> {
+        let mut map = BTreeMap::new();
+        for (key, value) in &self.punctuation_map {
+            let mut chars = key.chars();
+            match (chars.next(), chars.next()) {
+                (Some(c), None) if is_valid_map_key(c) => {
+                    if value.chars().count() <= MAX_MAP_TEXT_CHARS {
+                        map.insert(c, value.clone());
+                    } else {
+                        tracing::warn!(key, "[general] punctuation_map 的转换文本超长，丢掉该条");
+                    }
+                }
+                _ => {
+                    tracing::warn!(
+                        key,
+                        "[general] punctuation_map 的键须是单个 ASCII 标点，丢掉该条"
+                    );
+                }
+            }
+        }
+        map
+    }
 }
 
 #[cfg(test)]
@@ -312,6 +347,25 @@ mod tests {
     #[test]
     fn aux_code_keep_empty_defaults_on() {
         assert!(GeneralConfig::default().aux_code_keep_empty);
+    }
+
+    /// 标点映射覆盖缺省空表；清洗丢掉非法条目，空值（该键不转换）照收。
+    #[test]
+    fn punctuation_map_is_sanitized_on_read() {
+        let mut general = GeneralConfig::default();
+        assert!(general.punctuation_map().is_empty());
+        general.punctuation_map = BTreeMap::from([
+            ("/".to_owned(), "、".to_owned()),
+            ("{}".to_owned(), "？".to_owned()),
+            ("a".to_owned(), "×".to_owned()),
+            ("。".to_owned(), "！".to_owned()),
+            ("^".to_owned(), String::new()),
+            ("~".to_owned(), "太".repeat(MAX_MAP_TEXT_CHARS + 1)),
+        ]);
+        assert_eq!(
+            general.punctuation_map(),
+            BTreeMap::from([('/', "、".to_owned()), ('^', String::new())])
+        );
     }
 
     #[test]

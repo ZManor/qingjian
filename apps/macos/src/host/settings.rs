@@ -162,6 +162,47 @@ impl Host {
                 self.preferences.set_status("自定义短语已保存");
                 return;
             }
+            (Setting::EditPunctuationMap, _) => {
+                self.preferences.edit_punctuation_map(&config);
+                return;
+            }
+            (Setting::CancelPunctuationEdit, _) => {
+                self.preferences.close_punctuation_editor();
+                return;
+            }
+            // 行里的文本框失焦也会发 action：草稿在控件里，保存时整表读
+            (Setting::PunctuationDraft, _) => return,
+            (Setting::AddPunctuationRow, _) => {
+                self.preferences.add_punctuation_row();
+                return;
+            }
+            (Setting::PunctuationRemoveRow(index), _) => {
+                self.preferences.remove_punctuation_row(index);
+                return;
+            }
+            (Setting::SavePunctuationMap, _) => {
+                let draft = match self.preferences.punctuation_draft() {
+                    Ok(map) => map,
+                    Err(error) => {
+                        self.preferences.set_punctuation_error(&error);
+                        self.preferences.set_status(&error);
+                        return;
+                    }
+                };
+                let Some(path) = self.settings.path() else {
+                    return;
+                };
+                if let Err(error) = qingjian_platform::Config::set_punctuation_map(path, &draft) {
+                    self.preferences.set_punctuation_error(&error);
+                    self.preferences.set_status(&error);
+                    return;
+                }
+                self.preferences.close_punctuation_editor();
+                self.settings.reload();
+                self.apply_config(false);
+                self.preferences.set_status("标点映射已保存");
+                return;
+            }
             (Setting::FullWidthPunctuation, SettingValue::Index(index)) => {
                 self.settings
                     .set_bool("general", "full_width_punctuation", index == 0);

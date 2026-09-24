@@ -76,7 +76,7 @@ impl Router {
         if self.full_width_for(english)
             && let Some(mark) = self.engine.punctuate(QUESTION_PREFIX)
         {
-            return mark.to_owned();
+            return mark;
         }
         self.engine.note_passthrough(QUESTION_PREFIX);
         QUESTION_PREFIX.to_string()
@@ -206,7 +206,7 @@ impl Router {
             && self.full_width_for(english)
             && let Some(text) = self.engine.punctuate(c)
         {
-            return Effect::Changed(Some(text.to_owned()));
+            return Effect::Changed(Some(text));
         }
         self.engine.note_passthrough(c);
         Effect::Passthrough

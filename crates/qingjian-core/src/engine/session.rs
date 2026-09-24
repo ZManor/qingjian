@@ -59,7 +59,8 @@ impl Engine {
         self.set_rescoring_context(None);
         std::mem::swap(&mut self.composition, &mut session.composition);
         std::mem::swap(&mut self.english_mode, &mut session.english_mode);
-        std::mem::swap(&mut self.punctuation, &mut session.punctuation);
+        // 标点只交接随输入走的状态（引号配对、数字记忆）；自定义映射是配置，各会话共用
+        self.punctuation.swap_transient(&mut session.punctuation);
         std::mem::swap(&mut self.recent_commits, &mut session.recent_commits);
         std::mem::swap(&mut self.recording, &mut session.recording);
         std::mem::swap(&mut self.retype_snapshot, &mut session.retype_snapshot);
@@ -91,7 +92,8 @@ impl EngineSession {
     pub fn discard_input(&mut self) {
         self.composition.clear();
         self.english_mode = false;
-        self.punctuation = Punctuation::default();
+        // 只清随输入走的状态，自定义映射是配置不丢
+        self.punctuation.reset_transient();
         self.recent_commits.clear();
         self.recording.clear();
         self.retype_snapshot = None;
@@ -112,7 +114,8 @@ impl Engine {
         self.cancel_prediction();
         self.composition.clear();
         self.english_mode = false;
-        self.punctuation = Punctuation::default();
+        // 只清随输入走的状态，自定义映射是配置不丢
+        self.punctuation.reset_transient();
         self.recent_commits.clear();
         self.recording.clear();
         self.retype_snapshot = None;

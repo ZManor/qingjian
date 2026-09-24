@@ -200,7 +200,7 @@ impl QingjianInputController {
         // 中文模式下的全角标点；转不了的（数字、字母以外的其他键）原样交给应用
         match host::with(|h| h.engine.punctuate(c)).flatten() {
             Some(full_width) => {
-                client.insert_text(full_width);
+                client.insert_text(&full_width);
                 true
             }
             None => {

@@ -83,13 +83,13 @@ fn cursor_edits_requery_from_the_start_and_map_into_marked_text() {
 #[test]
 fn punctuation_follows_committed_text() {
     let mut engine = engine();
-    assert_eq!(engine.punctuate(','), Some("，"));
+    assert_eq!(engine.punctuate(','), Some("，".to_owned()));
     engine.note_passthrough('3');
     assert_eq!(engine.punctuate('.'), None);
     engine.set_input("kaifa");
     let kaifa = engine.query().unwrap().candidates.items[0].clone();
     engine.commit(&kaifa);
-    assert_eq!(engine.punctuate('.'), Some("。"));
+    assert_eq!(engine.punctuate('.'), Some("。".to_owned()));
 }
 
 #[test]

@@ -316,7 +316,7 @@ fn punctuation_ends_the_aux_state() {
     engine.set_input("kaifa");
     engine.enter_aux();
     engine.push_aux_code('k');
-    assert_eq!(engine.punctuate(';'), Some("；"));
+    assert_eq!(engine.punctuate(';'), Some("；".to_owned()));
     assert!(!engine.in_aux());
 }
 

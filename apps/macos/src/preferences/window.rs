@@ -223,6 +223,25 @@ impl PreferencesWindow {
         Ok((self.phrases.selected(config)?, self.phrases.draft()))
     }
 
+    pub fn edit_punctuation_map(&self, config: &Config) {
+        self.general.edit_punctuation_map(config);
+    }
+    pub fn close_punctuation_editor(&self) {
+        self.general.close_punctuation_editor();
+    }
+    pub fn set_punctuation_error(&self, error: &str) {
+        self.general.set_punctuation_error(error);
+    }
+    pub fn add_punctuation_row(&self) {
+        self.general.add_punctuation_row();
+    }
+    pub fn remove_punctuation_row(&self, index: usize) {
+        self.general.remove_punctuation_row(index);
+    }
+    pub fn punctuation_draft(&self) -> Result<std::collections::BTreeMap<char, String>, String> {
+        self.general.punctuation_draft()
+    }
+
     /// 打开（或带到最前）。
     pub fn show(&self) {
         self.panel.present();

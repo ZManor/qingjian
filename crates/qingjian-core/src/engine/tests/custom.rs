@@ -100,7 +100,7 @@ fn punctuation_mode_does_not_change_custom_text() {
     let c = e.query().unwrap().candidates.items[0].clone();
     assert_eq!(e.commit(&c), "；");
     e.set_full_width_punctuation(true);
-    assert_eq!(e.punctuate(';'), Some("；"));
+    assert_eq!(e.punctuate(';'), Some("；".to_owned()));
 }
 
 #[test]

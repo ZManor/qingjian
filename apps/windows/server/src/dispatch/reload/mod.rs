@@ -200,6 +200,8 @@ impl Router {
         self.engine.set_learning(config.general.learning);
         self.engine.set_mode_keys(config.shortcut.mode);
         self.engine
+            .set_punctuation_map(&config.general.punctuation_map());
+        self.engine
             .set_aux_code_key(config.general.aux_code_key(), config.general.page_keys());
         self.engine
             .set_aux_keep_empty(config.general.aux_code_keep_empty);

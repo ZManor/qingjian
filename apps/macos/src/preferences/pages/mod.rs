@@ -9,6 +9,7 @@ mod dictionaries;
 mod fuzzy;
 mod general;
 mod phrases;
+mod punctuation;
 mod shortcuts;
 mod usage;
 

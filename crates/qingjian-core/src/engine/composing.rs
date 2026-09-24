@@ -14,7 +14,7 @@ const MAX_PENDING_PASSTHROUGH: usize = 200;
 
 impl Engine {
     /// 中文模式下把半角字符转成全角标点；不需要转换返回 `None`。
-    pub fn punctuate(&mut self, c: char) -> Option<&'static str> {
+    pub fn punctuate(&mut self, c: char) -> Option<String> {
         // 组句外敲的标点：辅码态到此结束（壳已经把高亮候选上屏了）
         self.aux_code = None;
         let converted = if self.full_width_punctuation {
@@ -22,7 +22,7 @@ impl Engine {
         } else {
             None
         };
-        if let Some(text) = converted {
+        if let Some(text) = &converted {
             self.history.record(text);
             self.remember_commit(LastCommit::plain(text));
             // 全角标点也是文本流的一部分，与直通字符攒在一起
@@ -323,7 +323,7 @@ impl Engine {
         }
         self.clear();
         if !english && let Some(mark) = self.punctuate(QUESTION_PREFIX) {
-            return Some(mark.to_owned());
+            return Some(mark);
         }
         self.note_passthrough(QUESTION_PREFIX);
         Some(QUESTION_PREFIX.to_string())
